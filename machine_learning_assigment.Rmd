@@ -1,0 +1,67 @@
+---
+title: "Assignment_MachineLearning"
+author: "Eva"
+date: "26 July 2014"
+output: html_document
+---
+
+The first step is, as always, to obtain the data and clean it up. First, the data needs to be downloaded as follows (it is already split into a training and a test set, so no need to subsequently perform a partitioning step on the datasets):
+
+```{r}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(fileUrl, dest = "./traindata", method = "curl")
+
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(fileUrl, dest = "./testdata", method = "curl")
+```
+
+Given the inconsistent use of NA as well as empty space (i.e. no data), and the very high number of columns that almost exclusively consist of NA, this data set needs to be cleaned up considerably. The following steps read in the files, assign the NA value to both missing values as well as columns containing the value "NA", and then remove all columns that contain NA values, as well as a few additional columns - these could be interesting for other analyses (e.g. time, subject) but all we want to look at is whether the motion data itself can predict whether this was performed correctly or if not, with which error. 
+
+```{r}
+traindata <- read.csv("traindata", header = TRUE, sep = ",", na.strings = "")
+traindata[ traindata == "NA" ] = NA
+traindata <- traindata[ , ! apply( traindata , 2 , function(x) any(is.na(x)) ) ]
+traindata[c(1:7)]<-list(NULL)
+
+testdata <- read.csv("testdata", header = TRUE, sep = ",", na.strings = "")
+testdata[ testdata == "NA" ] = NA
+testdata <- testdata[ , ! apply( testdata , 2 , function(x) any(is.na(x)) ) ]
+testdata[c(1:7)]<-list(NULL)
+```
+
+Take a first look at how messy the data is, or how clear the difference between the classes is.
+
+```{r}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+p1 <- ggplot(traindata, aes(x = total_accel_belt, colour = classe)) + geom_density() + ggtitle("Total belt acceleration")
+p2 <- ggplot(traindata, aes(x = roll_belt, colour = classe)) + geom_density() + ggtitle("Belt roll")
+p3 <- ggplot(traindata, aes(x = pitch_belt, colour = classe)) + geom_density() + ggtitle("Belt pitch")
+p4 <- ggplot(traindata, aes(x = yaw_belt, colour = classe)) + geom_density() + ggtitle("Belt yaw")
+grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+```
+
+So far, so good - seems that there are distinct differences, and class E seems to be very different from all the others. Now just one more quick look at the summary variables for belt, arm, dumbell and forearm:
+```{r}
+p1 <- ggplot(traindata, aes(x = total_accel_belt, colour = classe)) + geom_density() + ggtitle("Total belt acceleration")
+p2 <- ggplot(traindata, aes(x = total_accel_arm, colour = classe)) + geom_density() + ggtitle("Total arm acceleration")
+p3 <- ggplot(traindata, aes(x = total_accel_dumbbell, colour = classe)) + geom_density() + ggtitle("Total dumbbell acceleration")
+p4 <- ggplot(traindata, aes(x = total_accel_forearm, colour = classe)) + geom_density() + ggtitle("Total forearm acceleration")
+grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+```
+Again this looks somewhat promising - distinct differences between the different groups for all parameters, so ideally all parameters contribute to the model in a meaningful way. Since I am unfortunately late for this assignment, I will leave it at that; otherwise, more time spent on whether all of the variables are really useful (i.e. all of the "sub-movements of the different indicators belt, arm, dumbbell and forearm should be inspected more closely).    
+As the final step I want to build a prediction model with the training data, and then apply it to the test data. The class should be predicted, by all the other values. First, build a model from the training data.
+```{r}
+library(caret)
+library(randomForest)
+Modfit <- train(classe ~ ., method = "rf", data = traindata)
+Modfit
+```
+The final Accuracy was 0.993, which I hope should be enough. 
+```{r}
+pred <- predict(Modfit, testdata)
+pred
+```
+After uploading the .txt files in the automated grading section, I can see that all results are correct! So, even though it took very long for the random forest model to be generated, it seems to have been worth it. If more time were available, I would clean up the predictors more (e.g. with PCA).
+
