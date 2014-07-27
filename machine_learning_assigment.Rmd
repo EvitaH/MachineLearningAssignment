@@ -58,8 +58,8 @@ library(randomForest)
 Modfit <- train(classe ~ ., method = "rf", data = traindata)
 Modfit
 ```
-The final Accuracy was 0.993, which I hope should be enough. 
-```{r}
+The final Accuracy is very high; I will use this model on the test set. All predictions were correct after I submitted them, so this model seems a good approach. I have hidden the output below so it is not shown before the deadline. 
+```{r, results = 'hide'}
 pred <- predict(Modfit, testdata)
 pred
 ```
